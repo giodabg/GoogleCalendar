@@ -21,3 +21,15 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+/NBParseCircolariXML/nbproject/private/
+/PDF2XML_ese1/build/
+/PDF2XML_ese1/nbproject/private/
+/NBPDF2XML_ese1/nbproject/private/
+/NBPDF2XML_ese1/build/
+/NBPDF2XML/nbproject/private/
+/NBPDF2XML/build/
+/NBPDF2XML_ese1/Documents/
+/NBPDF2XML_ese1/nbproject/
+/NBPDF2XML_ese1/src/
+/NBPDF2XML_ese1/build.xml
+/NBPDF2XML_ese1/manifest.mf

@@ -1,0 +1,268 @@
+// id sheet Eventi Classi
+// https://docs.google.com/spreadsheets/d/1FXnZb0SV8cPgI1S-mtGxFhdZ9gmWWTeO__ittD7oYaA/edit#gid=0
+var sheetID = "1FXnZb0SV8cPgI1S-mtGxFhdZ9gmWWTeO__ittD7oYaA";
+
+var timezone = "GMT+1";
+var timestamp_format_long = "dd-MM-yyyy HH-mm-ss"; // Timestamp Format. 
+var timestamp_format_date = "dd-MM-yyyy"; // Timestamp Format. 
+var timestamp_format_hour = "HH-mm-ss"; // Timestamp Format. 
+
+var ANNO_SCOLASTICO = "18-19";
+
+// sheet CalendariCLassi
+var COL_ID_CALENDARIO = 0;
+var COL_NOME_CALENDARIO = 1;
+var COL_COLORE_CALENDARIO = 2;
+var COL_CLASSE = 3;
+
+// sheet Eventi
+var COL_EVENTI_ID_CLASSE = 1;
+var COL_EVENTI_ID_GIORNO = 2;
+var COL_EVENTI_ID_ORA = 3;
+var COL_EVENTI_ID_DESC = 4;
+
+function onOpen() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  var menuEntries = [ {name: "Aggiorna calendari", functionName: "creaInfoEventi"}
+                    ];
+
+  ss.addMenu("IIS-JM", menuEntries);
+  
+  //https://productforums.google.com/forum/#!topic/docs/Ujpf-tJQrCs
+  
+  var documentProperties = PropertiesService.getDocumentProperties();
+  var scriptProperties = PropertiesService.getScriptProperties();
+  var userProperties = PropertiesService.getUserProperties();
+  // ScriptApp.newTrigger('createFilesAndSendEmails')
+  // .forSpreadsheet('138x3UIfhRfbMZRLm_0RTA-G8W_-IZ12J72CtqpbEgBM')
+  // .onFormSubmit()
+  // .onEdit()
+  // .create();  
+  
+}
+
+function coloreCalendario (classe) {
+  var ind = classe[2]+classe[3]+classe[4];
+  
+  if (ind == "AFM" || ind == "RIM")
+      return CalendarApp.Color.YELLOW;
+  else if (ind == "INF" || ind == "ITL") 
+      return CalendarApp.Color.TURQOISE;
+  else if (ind == "CBA" || ind == "CHM" || ind == "CMB")       
+      return CalendarApp.Color.ORANGE;
+  else if (ind == "LLG")       
+      return CalendarApp.Color.RED;
+  else if (ind == "LSA")       
+      return CalendarApp.Color.BLUE;
+  else if (ind == "MCM" || ind == "MME")       
+      return CalendarApp.Color.GRAY;
+  else if (ind == "TUR")       
+      return CalendarApp.Color.BROWN;
+  else
+      return CalendarApp.Color.LIME;
+}
+
+function nomeCalendario(classe, annoScol) {
+  var ind = classe[2]+classe[3]+classe[4];
+  var nomeCal = annoScol+ " "+classe[0]+classe[1]+" "+ind;
+  return nomeCal;
+}
+
+function creaCalendariDelleClassi() {  
+  var sheet = SpreadsheetApp.openById(sheetID).getSheetByName("CalendariCLassi");
+  var data = sheet.getDataRange().getValues();
+  var newData = new Array();
+  for(i=1; i < data.length; i++) {  
+    var row = data[i];
+    if (!row[COL_ID_CALENDARIO]) {
+      var classe = row[COL_CLASSE];
+      row[COL_NOME_CALENDARIO] = nomeCalendario(classe, ANNO_SCOLASTICO);
+      row[COL_COLORE_CALENDARIO] = coloreCalendario(classe);
+      row[COL_ID_CALENDARIO] = creaCalendarioClasse(classe, row[COL_COLORE_CALENDARIO]);
+      setRange(sheet, i, 0, 1, row.length, [row]);
+    }
+  }
+}
+
+function creaCalendarioClasse(classe, myColor) {
+  // Creates a new calendar named "Travel Plans" with a summary and color.
+  var nome = nomeCalendario(classe, ANNO_SCOLASTICO);
+  var calendars = CalendarApp.getCalendarsByName(nome);
+  if (calendars.length == 0) {
+     var calendar = CalendarApp.createCalendar(nome, {
+        summary: 'Calendario con gli impegni della '+classe+' '+ANNO_SCOLASTICO,
+        color: myColor
+     });
+     Logger.log('Created the calendar "%s", with the ID "%s".',
+        calendar.getName(), calendar.getId());
+    return calendar.getId();
+  }
+  else
+   return calendars[0].getId();
+}
+
+function arrayAssociativoIDCalendari() {
+  var sheet = SpreadsheetApp.openById(sheetID).getSheetByName("CalendariCLassi");
+  var data = sheet.getDataRange().getValues();
+  var associativo = new Array();
+  for(i=1; i < data.length; i++) {  
+    var row = data[i];
+    associativo[row[COL_NOME_CALENDARIO]] = row[COL_ID_CALENDARIO];
+  }
+  return associativo;
+}
+
+function creaInfoEventi() {
+  var ss = SpreadsheetApp.openById(sheetID);
+  var sheetEventi = ss.getSheetByName("Eventi");
+  var dataEventi = sheetEventi.getDataRange().getValues();
+
+  var nomeCal_id = arrayAssociativoIDCalendari();
+  try {
+    var eventi = [];
+    var evento = [];
+
+    // si salta la riga di intestazione
+    for(var i = 1; i < dataEventi.length; i++) { 
+      var row = dataEventi[i];
+          
+          
+      var classe = row[COL_EVENTI_ID_CLASSE];
+      if (classe != "") {
+        var nome_calendario = nomeCalendario(classe, ANNO_SCOLASTICO);;
+        var id_calendario = nomeCal_id[nome_calendario];
+        var giorno = row[COL_EVENTI_ID_GIORNO];
+        var inizio;
+        var fine;
+        if (row[COL_EVENTI_ID_ORA] == 1) {
+         inizio = "08:00";
+         fine   = "09:00";
+        }
+        else if (row[COL_EVENTI_ID_ORA] == 2) {
+         inizio = "09:00";
+         fine   = "10:00";
+        }
+        else if (row[COL_EVENTI_ID_ORA] == 3) {
+         inizio = "10:00";
+         fine   = "11:00";
+        }
+        else if (row[COL_EVENTI_ID_ORA] == 4) {
+         inizio = "11:00";
+         fine   = "12:00";
+        }
+        else if (row[COL_EVENTI_ID_ORA] == 5) {
+         inizio = "12:00";
+         fine   = "13:00";
+        }
+        else if (row[COL_EVENTI_ID_ORA] == 6) {
+         inizio = "13:00";
+         fine   = "14:00";
+        }
+        else {
+          inizio = "08:00";
+          fine   = "13:00";
+        }
+        var oraIn = inizio.split(":");
+        var oraFin = fine.split(":");
+        var anno = giorno.getFullYear();
+        var mese = giorno.getMonth();
+        var giorno = giorno.getDate();
+        var datei = new Date(anno, mese, giorno, oraIn[0], oraIn[1], 0, 0);
+        var datef = new Date(anno, mese, giorno, oraFin[0], oraFin[1], 0, 0);     
+        
+        var descrizione = "";
+        var tilolo = "";
+        if ((row[COL_EVENTI_ID_DESC] != "SABATO LIBERO") && (row[COL_EVENTI_ID_DESC] != "GITA")) {
+          if (row[COL_EVENTI_ID_DESC] != "") {
+            tilolo = "Lezione";
+            descrizione = row[COL_EVENTI_ID_DESC];
+          }
+        }
+        else {
+          tilolo = row[COL_EVENTI_ID_DESC];
+          descrizione = "";
+        }       
+         
+        if ((tilolo != "") && (datei != "") && (datef != "")) {
+          var str = row[0].toString();
+          if (str == "")
+            row[0] = creaEvento(id_calendario, tilolo, descrizione, datei, datef);
+          else if  (str.substr(str.length - 11) != "@google.com")
+            row[0] = creaEvento(id_calendario, tilolo, descrizione, datei, datef);
+        }
+      }
+      // salvo sempre tutti i dati
+      eventi.push(row);   
+      
+    }
+    
+    setRange(sheetEventi, 1, 0, eventi.length, row.length, eventi);
+    return true;
+  } catch(e) {
+        
+    var str = "";
+    str += " e.message "+e.message+" ";
+    str += " e.fileName "+e.fileName+" ";
+    str += " e.lineNumber "+e.lineNumber+" ";
+    Logger.log(str);
+    return str;
+  }     
+}
+
+
+function creaEvento(IDCalendario, titolo, descrizione, dataIn, dataFin) {
+  try {
+    var calendar = CalendarApp.getCalendarById(IDCalendario);
+    var details = {"description":descrizione};
+    var event = calendar.createEvent(titolo, dataIn, dataFin, details);
+    Logger.log('Event ID: ' + event.getId());
+    return event.getId();
+  } catch(e) {
+        
+    var str = "";
+    str += " e.message "+e.message+" ";
+    str += " e.fileName "+e.fileName+" ";
+    str += " e.lineNumber "+e.lineNumber+" ";
+    Logger.log(str);
+    return str;
+  } 
+}
+
+
+
+function checkDate(v, timeZ, time_format) {
+  try {
+    // https://stackoverflow.com/questions/35488331/formatdate-gives-correct-date-1-day-google-apps-script
+    // https://developers.google.com/adwords/scripts/docs/features/dates
+    // Logger.log("checkDate "+Utilities.formatDate(v, timeZ, time_format));
+    return Utilities.formatDate(v, timeZ, time_format);
+  } catch(e) {
+        
+    var str = "checkDate("+v+")\n";
+    str += " e.message "+e.message+" ";
+    str += " e.fileName "+e.fileName+" ";
+    str += " e.lineNumber "+e.lineNumber+" ";
+    // Logger.log(str);
+    return null;
+  }          
+}
+
+function setRange(sheetToModify, rigIn, colIn, numCol, numRig, matrice) {
+  try {
+    var riga = parseInt(rigIn)+1;
+    var colonna = parseInt(colIn)+1;
+    var range = sheetToModify.getRange(riga,colonna,parseInt(numCol), parseInt(numRig));  
+    if (range != null && range.canEdit()) {
+      range.setValues(matrice); 
+    }
+  } catch(e) {
+        
+    var str = "";
+    str += " e.message "+e.message+" ";
+    str += " e.fileName "+e.fileName+" ";
+    str += " e.lineNumber "+e.lineNumber+" ";
+    Logger.log(str);
+    return str;
+  }   
+}
