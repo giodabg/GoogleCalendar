@@ -19,10 +19,10 @@ public class ParseTaggedPdf {
  
     /** The resulting XML file. */
     public static final String SOURCE
-        = "Documents\\Circolari_2902_2018-2019.pdf";
+        = "Documents\\Circolari_2919_2018-2019.pdf";
     /** The resulting XML file. */
     public static final String RESULT
-        = "Documents\\Circolari_2902_2018-2019.xml"; 
+        = "Documents\\Circolari_2919_2018-2019.xml"; 
     /**
      * Creates a PDF file using a previous example,
      * then parses the document.
